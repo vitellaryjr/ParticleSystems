@@ -1,6 +1,6 @@
 local System, super = Class(Object)
 
-function System:init(x, y, w, h)
+function System:init(x, y, w, h, o)
     super:init(self, x, y, w, h)
     self.layer = (type(o.layer) == "number" and o.layer) or self:getLayerValue(o.layer)
     self.timer = Timer()
