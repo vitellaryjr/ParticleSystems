@@ -5,9 +5,9 @@ function Particle:init(texture, x, y)
     self:setOrigin(0.5, 0.5)
 end
 
-function Particle:update(dt)
-    if self.update_func then self:update_func(dt) end
-    super:update(self, dt)
+function Particle:update()
+    if self.update_func then self:update_func() end
+    super:update(self)
 end
 
 function Particle:draw()

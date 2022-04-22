@@ -140,7 +140,7 @@ function Absorber:init(x, y, o)
         -- called after all fields are defined for the particle
         init = nil, -- function(particle)
         -- called every frame, before the particle updates
-        update = nil, --    ...(particle, dt)
+        update = nil, --    ...(particle)
         -- called every frame, before the particle is drawn
         pre_draw = nil, --  ...(particle)
         -- called every frame, overriding the particle's draw function
