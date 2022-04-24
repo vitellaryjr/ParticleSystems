@@ -38,8 +38,10 @@ function System:getParent()
         return Game.shop
     elseif Game.world then
         return Game.world
-    else
+    elseif Game.stage then
         return Game.stage
+    else
+        return Kristal.stage
     end
 end
 
