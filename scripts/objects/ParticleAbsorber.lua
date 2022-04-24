@@ -112,10 +112,16 @@ function Absorber:init(x, y, o)
         grow = 0,
         grow_x = 0,
         grow_y = 0,
-        -- amount the particle's scale will approach 0 per frame at 30fps
+        -- amount the particle's scale will approach its end scale, per frame at 30fps
         shrink = 0,
+        shrink_x = 0,
+        shrink_y = 0,
         -- time to wait until the particle begins shrinking
         shrink_after = -1,
+        -- scale to shrink to
+        shrink_to = 0,
+        shrink_to_x = 0,
+        shrink_to_y = 0,
 
         -- amount the particle's alpha will approach its target alpha upon spawning, per frame at 30fps
         -- if defined, the particle's alpha will start as 0
@@ -124,6 +130,8 @@ function Absorber:init(x, y, o)
         fade = 0,
         -- time to wait until the particle begins fading
         fade_after = -1,
+        -- alpha to fade to
+        fade_to = 0,
         
         -- time to wait until removing the particle
         remove_after = -1,
@@ -263,11 +271,29 @@ function Absorber:emit()
                 end
             end)
         end
-        local shrink = self:getValue(p, "shrink")
-        if shrink > 0 then
-            self:getParent().timer:after(math.max(self:getValue(p, "shrink_after"), 0), function()
-                p.graphics.remove_shrunk = true
-                p.graphics.grow = -shrink
+        local shrink, shrink_x, shrink_y = self:getValue(p, "shrink"), self:getValue(p, "shrink_x"), self:getValue(p, "shrink_y")
+        if shrink > 0 or shrink_x > 0 or shrink_y > 0 then
+            self:getParent().timer:script(function(wait)
+                wait(math.max(self:getValue(p, "shrink_after"), 0))
+                local shrink_to = self:getValue(p, "shrink_to")
+                local shrink_to_x = self:getValue(p, "shrink_to_x")
+                local shrink_to_y = self:getValue(p, "shrink_to_y")
+                local change_x = (shrink_x > 0) and shrink_x or shrink
+                local change_y = (shrink_y > 0) and shrink_y or shrink
+                if shrink_to_x == 0 then
+                    shrink_to_x = shrink_to
+                end
+                if shrink_to_y == 0 then
+                    shrink_to_y = shrink_to
+                end
+                while p.scale_x ~= shrink_to_x and p.scale_y ~= shrink_to_y do
+                    p.scale_x = Utils.approach(p.scale_x, shrink_to_x, change_x*DTMULT)
+                    p.scale_y = Utils.approach(p.scale_y, shrink_to_y, change_y*DTMULT)
+                    wait()
+                end
+                if shrink_to_x == 0 or shrink_to_y == 0 then
+                    p:remove()
+                end
             end)
         end
         local fade_in = self:getValue(p, "fade_in")
@@ -279,9 +305,12 @@ function Absorber:emit()
         local fade = self:getValue(p, "fade")
         if fade > 0 then
             self:getParent().timer:after(math.max(self:getValue(p, "fade_after"), 0), function()
-                p.graphics.fade_to = 0
+                local fade_to = self:getValue(p, "fade_to")
+                p.graphics.fade_to = fade_to
                 p.graphics.fade = fade
-                p.graphics.fade_callback = p.remove
+                if fade_to == 0 then
+                    p.graphics.fade_callback = p.remove
+                end
             end)
         end
         local remove = self:getValue(p, "remove_after")
