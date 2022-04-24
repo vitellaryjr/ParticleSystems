@@ -331,7 +331,7 @@ function Absorber:emit()
         p.draw_func = self.data.draw
         p.post_draw_func = self.data.post_draw
         p.remove_func = self.data.remove
-        p.layer = self:getValue(p, "layer")
+        p.layer = self:getLayerValue(self.data.layer)
         if self.data.init then
             self.data.init(p)
         end
