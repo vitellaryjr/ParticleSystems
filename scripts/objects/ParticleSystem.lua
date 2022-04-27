@@ -114,12 +114,15 @@ end
 
 function System:getLayerValue(layer)
     local parent = self:getParent()
+    if type(layer) == "number" then
+        return layer
+    end
     if parent == Game.battle then
         return BATTLE_LAYERS[layer] or 0
     elseif parent == Game.shop then
         return SHOP_LAYERS[layer] or 0
     elseif parent == Game.world then
-        return WORLD_LAYERS[layer] or 0
+        return Game.world:parseLayer(layer)
     end
     return 0
 end
