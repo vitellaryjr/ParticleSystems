@@ -10,8 +10,8 @@ local Emitter, super = Class("ParticleSystem")
 -- if width and height are specified, particle positions will be randomly dispersed within the bounds specified
 function Emitter:init(x, y, w, h, o)
     if type(w) == "table" then
-        super:init(self, x, y, 0, 0, o)
         o = w
+        super:init(self, x, y, 0, 0, o)
     elseif type(x) == "table" then
         o = x
         super:init(self, 0, 0, 0, 0, o)
@@ -113,10 +113,18 @@ function Emitter:init(x, y, w, h, o)
         grow = 0,
         grow_x = 0,
         grow_y = 0,
+        -- alternatively, time the particle will take to reach its target scale
+        grow_time = 0,
+        grow_x_time = 0,
+        grow_y_time = 0,
         -- amount the particle's scale will approach its end scale, per frame at 30fps
         shrink = 0,
         shrink_x = 0,
         shrink_y = 0,
+        -- alternatively, time the particle will take to reach its end scale
+        shrink_time = 0,
+        shrink_x_time = 0,
+        shrink_y_time = 0,
         -- time to wait until the particle begins shrinking
         shrink_after = -1,
         -- scale to shrink to
@@ -127,8 +135,12 @@ function Emitter:init(x, y, w, h, o)
         -- amount the particle's alpha will approach its target alpha upon spawning, per frame at 30fps
         -- if defined, the particle's alpha will start as 0
         fade_in = 0,
+        -- alternatively, time the particle will take to fade in
+        fade_in_time = 0,
         -- amount the particle's alpha will approach 0 per frame at 30fps
         fade = 0,
+        -- alternatively, time the particle will take to fade out
+        fade_time = 0,
         -- time to wait until the particle begins fading
         fade_after = -1,
         -- alpha to fade to
@@ -257,8 +269,19 @@ function Emitter:emit()
             end
         end
         local grow, grow_x, grow_y = self:getValue(p, "grow"), self:getValue(p, "grow_x"), self:getValue(p, "grow_y")
+        local t_grow, t_grow_x, t_grow_y = self:getValue(p, "grow_time"), self:getValue(p, "grow_x_time"), self:getValue(p, "grow_y_time")
+        local sx, sy = p:getScale()
+        if t_grow > 0 then
+            grow_x = sx*(1/30)/t_grow
+            grow_y = sy*(1/30)/t_grow
+        end
+        if t_grow_x > 0 then
+            grow_x = sx*(1/30)/t_grow_x
+        end
+        if t_grow_y > 0 then
+            grow_y = sy*(1/30)/t_grow_y
+        end
         if grow > 0 or grow_x > 0 or grow_y > 0 then
-            local sx, sy = p:getScale()
             if grow > 0 then
                 p:setScale(0)
             end
@@ -288,20 +311,34 @@ function Emitter:emit()
             end)
         end
         local shrink, shrink_x, shrink_y = self:getValue(p, "shrink"), self:getValue(p, "shrink_x"), self:getValue(p, "shrink_y")
+        local t_shrink, t_shrink_x, t_shrink_y = self:getValue(p, "shrink_time"), self:getValue(p, "shrink_x_time"), self:getValue(p, "shrink_y_time")
         if shrink > 0 or shrink_x > 0 or shrink_y > 0 then
             self:getParent().timer:script(function(wait)
                 wait(math.max(self:getValue(p, "shrink_after"), 0))
                 local shrink_to = self:getValue(p, "shrink_to")
                 local shrink_to_x = self:getValue(p, "shrink_to_x")
                 local shrink_to_y = self:getValue(p, "shrink_to_y")
-                local change_x = (shrink_x > 0) and shrink_x or shrink
-                local change_y = (shrink_y > 0) and shrink_y or shrink
                 if shrink_to_x == 0 then
                     shrink_to_x = shrink_to
                 end
                 if shrink_to_y == 0 then
                     shrink_to_y = shrink_to
                 end
+                local sx, sy = p:getScale()
+
+                if t_shrink > 0 then
+                    shrink_x = math.abs(sx-shrink_to_x)*(1/30)/t_shrink
+                    shrink_y = math.abs(sy-shrink_to_y)*(1/30)/t_shrink
+                end
+                if t_shrink_x > 0 then
+                    shrink_x = math.abs(sx-shrink_to_x)*(1/30)/t_shrink_x
+                end
+                if t_shrink_y > 0 then
+                    shrink_y = math.abs(sy-shrink_to_y)*(1/30)/t_shrink_y
+                end
+
+                local change_x = (shrink_x > 0) and shrink_x or shrink
+                local change_y = (shrink_y > 0) and shrink_y or shrink
                 while p.scale_x ~= shrink_to_x and p.scale_y ~= shrink_to_y do
                     p.scale_x = Utils.approach(p.scale_x, shrink_to_x, change_x*DTMULT)
                     p.scale_y = Utils.approach(p.scale_y, shrink_to_y, change_y*DTMULT)
@@ -313,15 +350,23 @@ function Emitter:emit()
             end)
         end
         local fade_in = self:getValue(p, "fade_in")
+        local t_fade_in = self:getValue(p, "fade_in_time")
+        if t_fade_in > 0 then
+            fade_in = a*(1/30)/t_fade_in
+        end
         if fade_in > 0 then
             p.alpha = 0
             p.graphics.fade_to = a
             p.graphics.fade = fade_in
         end
         local fade = self:getValue(p, "fade")
-        if fade > 0 then
+        local t_fade = self:getValue(p, "fade_time")
+        if fade > 0 or t_fade > 0 then
             self:getParent().timer:after(math.max(self:getValue(p, "fade_after"), 0), function()
                 local fade_to = self:getValue(p, "fade_to")
+                if t_fade > 0 then
+                    fade = math.abs(p.alpha - fade_to)*(1/30)/t_fade
+                end
                 p.graphics.fade_to = fade_to
                 p.graphics.fade = fade
                 if fade_to == 0 then
